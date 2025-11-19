@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BRoll Shuffler</title>
+</head>
+<body>
+  <h1>BRoll Shuffler</h1>
+  <video id="player" width="720" height="405" controls autoplay></video>
+  <div id="label" style="margin-top: 10px; font-size: 18px;"></div>
+
+  <script>
+    let playlist = [];
+
+    function shuffle(array) {
+      let currentIndex = array.length, randomIndex;
+      while (currentIndex !== 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+      }
+      return array;
+    }
+
+    function getDriveURL(id) {
+      return `https://drive.google.com/uc?export=preview&id=${id}`;
+    }
+
+    function playNext() {
+      if (index >= playlist.length) {
+        index = 0;
+        playlist = shuffle(playlist);
+      }
+      const clip = playlist[index];
+      labelDiv.textContent = clip.label;
+      player.src = getDriveURL(clip.id);
+      player.load();
+      player.play();
+
+      setTimeout(() => {
+        player.pause();
+        index++;
+        playNext();
+      }, clip.duration * 1000);
+    }
+
+    let index = 0;
+    const player = document.getElementById('player');
+    const labelDiv = document.getElementById('label');
+
+    fetch('videos.json')
+      .then(response => response.json())
+      .then(data => {
+        const maxSeconds = 120;
+        playlist = data.map(v => {
+          if (v.duration > maxSeconds) v.duration = maxSeconds;
+          return v;
+        });
+        playlist = shuffle(playlist);
+        playNext();
+      });
+  </script>
+</body>
+</html>
