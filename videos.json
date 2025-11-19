@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1FjqchB6Y9YZyH8gdMcgBvZK00e4MZyBo",
+    "label": "Test Video A",
+    "tags": [
+      "demo",
+      "test"
+    ],
+    "duration": 60
+  },
+  {
+    "id": "1BaZdxrbM3zGm4T9D1g4sPiErMMEG8fTD",
+    "label": "Test Video B",
+    "tags": [
+      "sample",
+      "placeholder"
+    ],
+    "duration": 45
+  }
+]
