@@ -1,20 +1,8 @@
 [
   {
-    "id": "1AbcDEF123456789",
-    "label": "Test Video A",
-    "tags": [
-      "demo",
-      "test"
-    ],
+    "id": "13lIafgT71ZeQkM5z-nJphJYwV17TvCTv",
+    "label": "LACMA Clip Test",
+    "tags": ["test", "lacma", "architecture"],
     "duration": 60
-  },
-  {
-    "id": "1BaZdxrbM3zGm4T9D1g4sPiErMMEG8fTD",
-    "label": "Test Video B",
-    "tags": [
-      "sample",
-      "placeholder"
-    ],
-    "duration": 45
   }
 ]
