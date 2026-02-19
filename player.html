@@ -176,18 +176,21 @@
 
         // Initialize player
         function initPlayer() {
-            loadFromLocalStorage();
-            
-            if (videos.length > 0) {
-                console.log('Loaded videos:', videos);
-                // Create shuffled playlist
-                shuffledPlaylist = shuffleArray([...Array(videos.length).keys()]);
-                currentPlaylistIndex = 0;
-                playVideo(shuffledPlaylist[currentPlaylistIndex]);
-            } else {
-                console.error('No videos found in localStorage');
-                showError();
-            }
+            // Small delay to ensure localStorage is fully available
+            setTimeout(() => {
+                loadFromLocalStorage();
+                
+                if (videos.length > 0) {
+                    console.log('Loaded videos:', videos);
+                    // Create shuffled playlist
+                    shuffledPlaylist = shuffleArray([...Array(videos.length).keys()]);
+                    currentPlaylistIndex = 0;
+                    playVideo(shuffledPlaylist[currentPlaylistIndex]);
+                } else {
+                    console.error('No videos found in localStorage');
+                    showError();
+                }
+            }, 100);
         }
 
         // Load playlist from localStorage
@@ -397,3 +400,4 @@
     </script>
 </body>
 </html>
+
