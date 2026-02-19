@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Stream</title>
+    <title>Video Player</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         * {
             margin: 0;
@@ -12,670 +13,387 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #0a0a0a;
-            min-height: 100vh;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+        }
+
+        #playerContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow-x: hidden;
         }
 
-        /* Main container - exactly 1080px wide for 1080p content */
-        .player-container {
+        #videoPlayer {
             width: 100%;
-            max-width: 1080px;
-            margin: 0 auto;
-            background: #000;
+            height: 100%;
+            object-fit: contain;
         }
 
-        /* 16:9 aspect ratio container */
-        .video-wrapper {
-            position: relative;
-            padding-top: 56.25%; /* 16:9 Aspect Ratio */
-            background: #000;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-        }
-
-        video, iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
+        #videoIframe {
             width: 100%;
             height: 100%;
             border: none;
-            background: #000;
         }
 
-        /* Minimal, elegant controls */
-        .controls {
-            background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.8));
+        /* Progress Bar Only - Always Visible at Bottom */
+        .progress-container {
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 20px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 10;
-        }
-
-        .controls.show-hover {
-            opacity: 0;
-        }
-
-        .video-wrapper:hover .controls.show-hover {
-            opacity: 1;
-        }
-
-        .controls.show-always {
-            opacity: 1;
-        }
-
-        .controls.show-hidden {
-            display: none;
-        }
-
-        /* Show controls on mobile tap */
-        .video-wrapper.show-controls .controls {
-            opacity: 1;
-        }
-
-        .control-btn {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            font-size: 16px;
-        }
-
-        .control-btn:hover {
-            background: rgba(255,255,255,0.2);
-            transform: scale(1.1);
-        }
-
-        .control-btn:active {
-            transform: scale(0.95);
-        }
-
-        /* Special styling for main play button */
-        .control-btn.play-pause {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.15);
-        }
-
-        /* Progress bar */
-        .progress-container {
-            flex: 1;
             height: 4px;
             background: rgba(255,255,255,0.2);
-            border-radius: 2px;
-            cursor: pointer;
-            position: relative;
+            z-index: 10;
         }
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #ff6b00, #f6821f);
-            border-radius: 2px;
+            background: #667eea;
             width: 0%;
             transition: width 0.1s linear;
         }
 
-        /* Current video info */
         .video-info {
             position: absolute;
             top: 20px;
             left: 20px;
+            background: rgba(0,0,0,0.7);
             color: white;
-            font-size: 14px;
-            font-weight: 500;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            padding: 15px 20px;
+            border-radius: 8px;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.3s;
+            z-index: 10;
         }
 
-        .video-wrapper:hover .video-info {
+        #playerContainer:hover .video-info {
+            opacity: 1;
+        }
+
+        .video-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .video-meta {
+            font-size: 14px;
             opacity: 0.8;
         }
 
-        /* Loading spinner */
         .loading {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            display: none;
-            z-index: 20;
+            color: white;
+            font-size: 24px;
+            text-align: center;
         }
 
-        .loading.active {
-            display: block;
-        }
-
-        .spinner {
+        .loading-spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
             width: 50px;
             height: 50px;
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: #ff6b00;
-            border-radius: 50%;
             animation: spin 1s linear infinite;
+            margin: 20px auto;
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        /* Error message */
         .error-message {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(239, 68, 68, 0.9);
+            background: rgba(220,38,38,0.9);
             color: white;
-            padding: 20px 30px;
-            border-radius: 10px;
+            padding: 30px;
+            border-radius: 12px;
             text-align: center;
-            display: none;
-            z-index: 30;
+            max-width: 500px;
         }
 
-        .error-message.show {
-            display: block;
+        .error-message h2 {
+            margin-bottom: 15px;
         }
 
-        .error-message h3 {
-            margin-bottom: 10px;
+        .error-message p {
+            margin-bottom: 20px;
+            line-height: 1.5;
         }
 
         .error-message button {
-            margin-top: 15px;
-            padding: 8px 20px;
             background: white;
-            color: #ef4444;
+            color: #dc2626;
             border: none;
-            border-radius: 5px;
+            padding: 10px 20px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-        }
-
-        /* Fullscreen adjustments */
-        .player-container:fullscreen {
-            max-width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #000;
-        }
-
-        .player-container:fullscreen .video-wrapper {
-            box-shadow: none;
-        }
-
-        /* Mobile responsiveness */
-        @media (max-width: 1120px) {
-            .player-container {
-                max-width: 100%;
-                margin: 0;
-            }
-            
-            .video-wrapper {
-                box-shadow: none;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .controls {
-                padding: 15px;
-                gap: 10px;
-            }
-            
-            .control-btn {
-                width: 35px;
-                height: 35px;
-                font-size: 14px;
-            }
-            
-            .control-btn.play-pause {
-                width: 45px;
-                height: 45px;
-            }
-        }
-
-        /* Hide scrollbar for clean look */
-        ::-webkit-scrollbar {
-            width: 0px;
-            height: 0px;
-        }
-
-        /* Smooth fade in on load */
-        .player-container {
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
         }
     </style>
 </head>
 <body>
-    <div class="player-container" id="playerContainer">
-        <div class="video-wrapper" id="videoWrapper">
-            <!-- Video info overlay -->
-            <div class="video-info" id="videoInfo">
-                <span id="currentVideo">Loading...</span>
-            </div>
+    <div id="playerContainer">
+        <video id="videoPlayer" style="display: none;"></video>
+        <iframe id="videoIframe" style="display: none;" allowfullscreen></iframe>
+        
+        <div class="video-info">
+            <div class="video-title" id="currentTitle">Loading...</div>
+            <div class="video-meta" id="currentMeta">Preparing playback...</div>
+        </div>
 
-            <!-- Loading spinner -->
-            <div class="loading active" id="loading">
-                <div class="spinner"></div>
-            </div>
+        <!-- Progress Bar Only -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
 
-            <!-- Error message -->
-            <div class="error-message" id="errorMessage">
-                <h3>⚠️ No Videos Configured</h3>
-                <p>Please configure videos in the admin panel first</p>
-                <button onclick="goToAdmin()">Go to Admin Panel</button>
-            </div>
-
-            <!-- Video player -->
-            <video id="videoPlayer" playsinline></video>
-            <iframe id="iframePlayer" style="display: none;" allowfullscreen></iframe>
-
-            <!-- Minimal controls overlay -->
-            <div class="controls show-hover" id="controls">
-                <button class="control-btn" id="prevBtn" title="Previous">⏮</button>
-                <button class="control-btn play-pause" id="playPauseBtn" title="Play/Pause">▶</button>
-                <button class="control-btn" id="nextBtn" title="Next">⏭</button>
-                <div class="progress-container" id="progressContainer">
-                    <div class="progress-bar" id="progressBar"></div>
-                </div>
-                <button class="control-btn" id="shuffleBtn" title="Shuffle">🔀</button>
-                <button class="control-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
-            </div>
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <div>Loading videos...</div>
         </div>
     </div>
 
-    <!-- HLS.js for streaming -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    
     <script>
         let videos = [];
-        let currentIndex = 0;
-        let playHistory = [];
+        let shuffledPlaylist = [];
+        let currentPlaylistIndex = 0;
         let hls = null;
-        let isPlaying = false;
-        let settings = {
-            playMode: 'random',
-            autoplay: true,
-            showControls: 'hover',
-            loopPlaylist: true
-        };
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoIframe = document.getElementById('videoIframe');
+        const loading = document.getElementById('loading');
+        const progressBar = document.getElementById('progressBar');
 
         // Initialize player
         function initPlayer() {
-            // First check URL parameters for shared config
-            const params = new URLSearchParams(window.location.search);
-            const configParam = params.get('config');
+            loadFromLocalStorage();
             
-            if (configParam) {
-                // Load from URL parameter (shared link)
-                try {
-                    const config = JSON.parse(atob(configParam));
-                    videos = config.videos || [];
-                    settings = config.settings || settings;
-                    
-                    if (videos.length > 0) {
-                        startPlayback();
-                    } else {
-                        showError();
-                    }
-                } catch (e) {
-                    console.error('Invalid config parameter:', e);
-                    loadFromLocalStorage();
-                }
+            if (videos.length > 0) {
+                console.log('Loaded videos:', videos);
+                // Create shuffled playlist
+                shuffledPlaylist = shuffleArray([...Array(videos.length).keys()]);
+                currentPlaylistIndex = 0;
+                playVideo(shuffledPlaylist[currentPlaylistIndex]);
             } else {
-                // Load from localStorage (set by admin panel)
-                loadFromLocalStorage();
-            }
-
-            setupEventListeners();
-            setupKeyboardShortcuts();
-            applySettings();
-        }
-
-        // Load configuration from localStorage
-        function loadFromLocalStorage() {
-            const savedVideos = localStorage.getItem('videoStreamPlaylist');
-            const savedSettings = localStorage.getItem('videoStreamSettings');
-            
-            if (savedVideos) {
-                try {
-                    videos = JSON.parse(savedVideos);
-                    
-                    if (savedSettings) {
-                        settings = JSON.parse(savedSettings);
-                    }
-                    
-                    if (videos.length > 0) {
-                        startPlayback();
-                    } else {
-                        showError();
-                    }
-                } catch (e) {
-                    console.error('Error loading saved configuration:', e);
-                    showError();
-                }
-            } else {
+                console.error('No videos found in localStorage');
                 showError();
             }
         }
 
-        // Start playback
-        function startPlayback() {
-            document.getElementById('loading').classList.remove('active');
-            document.getElementById('errorMessage').classList.remove('show');
+        // Load playlist from localStorage
+        function loadFromLocalStorage() {
+            try {
+                const playlistData = localStorage.getItem('videoStreamPlaylist');
+                console.log('Raw localStorage data:', playlistData);
+                
+                if (playlistData) {
+                    videos = JSON.parse(playlistData);
+                    console.log('Parsed videos:', videos);
+                }
+            } catch (error) {
+                console.error('Error loading from localStorage:', error);
+            }
+        }
+
+        // Shuffle array (Fisher-Yates algorithm)
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // Play video by index
+        function playVideo(videoIndex) {
+            if (videoIndex < 0 || videoIndex >= videos.length) return;
             
-            // Start with first video or random based on settings
-            if (settings.playMode === 'random') {
-                currentIndex = Math.floor(Math.random() * videos.length);
+            const video = videos[videoIndex];
+            console.log('Playing video:', video);
+            
+            loading.style.display = 'flex';
+            progressBar.style.width = '0%';
+            
+            // Update video info
+            document.getElementById('currentTitle').textContent = video.name || `Video ${videoIndex + 1}`;
+            document.getElementById('currentMeta').textContent = `${currentPlaylistIndex + 1} of ${videos.length}`;
+            
+            // Determine video type - prioritize hlsUrl from Cloudflare
+            if (video.hlsUrl) {
+                playHLSVideo(video.hlsUrl);
+            } else if (video.iframeUrl) {
+                playIframeVideo(video.iframeUrl);
+            } else if (video.url) {
+                // Fallback to url field
+                if (video.url.includes('.m3u8')) {
+                    playHLSVideo(video.url);
+                } else if (video.url.includes('iframe') || video.url.includes('cloudflarestream.com')) {
+                    playIframeVideo(video.url);
+                } else {
+                    playDirectVideo(video.url);
+                }
             } else {
-                currentIndex = 0;
+                console.error('No valid video URL found:', video);
+                playNext();
+            }
+        }
+
+        // Play HLS video
+        function playHLSVideo(url) {
+            console.log('Playing HLS:', url);
+            videoPlayer.style.display = 'block';
+            videoIframe.style.display = 'none';
+            
+            if (hls) {
+                hls.destroy();
             }
             
-            loadVideo(currentIndex);
-            
-            // Auto-play if enabled
-            if (settings.autoplay) {
-                isPlaying = true;
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true
+                });
+                
+                hls.loadSource(url);
+                hls.attachMedia(videoPlayer);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    loading.style.display = 'none';
+                    videoPlayer.play();
+                });
+                
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        console.error('HLS error:', data);
+                        playNext();
+                    }
+                });
+            } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                videoPlayer.src = url;
+                loading.style.display = 'none';
+                videoPlayer.play();
             }
+            
+            // Update progress bar
+            videoPlayer.ontimeupdate = () => {
+                if (videoPlayer.duration) {
+                    const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                    progressBar.style.width = progress + '%';
+                }
+            };
+            
+            videoPlayer.onended = () => {
+                playNext();
+            };
+        }
+
+        // Play iframe video
+        function playIframeVideo(url) {
+            console.log('Playing iframe:', url);
+            videoPlayer.style.display = 'none';
+            videoIframe.style.display = 'block';
+            
+            // Add autoplay parameter
+            const separator = url.includes('?') ? '&' : '?';
+            const autoplayUrl = `${url}${separator}autoplay=true`;
+            
+            videoIframe.src = autoplayUrl;
+            loading.style.display = 'none';
+            
+            // Simulate progress bar for iframe (estimate based on duration if available)
+            if (videos[shuffledPlaylist[currentPlaylistIndex]].duration) {
+                const duration = videos[shuffledPlaylist[currentPlaylistIndex]].duration;
+                let elapsed = 0;
+                const progressInterval = setInterval(() => {
+                    elapsed += 0.5;
+                    const progress = (elapsed / duration) * 100;
+                    progressBar.style.width = Math.min(progress, 100) + '%';
+                    
+                    if (elapsed >= duration) {
+                        clearInterval(progressInterval);
+                        playNext();
+                    }
+                }, 500);
+            }
+        }
+
+        // Play direct video
+        function playDirectVideo(url) {
+            console.log('Playing direct:', url);
+            videoPlayer.style.display = 'block';
+            videoIframe.style.display = 'none';
+            
+            videoPlayer.src = url;
+            loading.style.display = 'none';
+            videoPlayer.play();
+            
+            videoPlayer.ontimeupdate = () => {
+                if (videoPlayer.duration) {
+                    const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                    progressBar.style.width = progress + '%';
+                }
+            };
+            
+            videoPlayer.onended = () => {
+                playNext();
+            };
+        }
+
+        // Play next video in shuffled playlist
+        function playNext() {
+            currentPlaylistIndex++;
+            
+            if (currentPlaylistIndex >= shuffledPlaylist.length) {
+                // All videos played once - stop (no repeating)
+                showEndMessage();
+                return;
+            }
+            
+            playVideo(shuffledPlaylist[currentPlaylistIndex]);
+        }
+
+        // Show end message
+        function showEndMessage() {
+            loading.style.display = 'none';
+            videoPlayer.style.display = 'none';
+            videoIframe.style.display = 'none';
+            
+            const endDiv = document.createElement('div');
+            endDiv.className = 'error-message';
+            endDiv.innerHTML = `
+                <h2>✅ Playlist Complete</h2>
+                <p>All ${videos.length} videos have been played.</p>
+                <button onclick="window.close()">Close Player</button>
+            `;
+            document.getElementById('playerContainer').appendChild(endDiv);
         }
 
         // Show error message
         function showError() {
-            document.getElementById('loading').classList.remove('active');
-            document.getElementById('errorMessage').classList.add('show');
-        }
-
-        // Go to admin panel
-        function goToAdmin() {
-            window.location.href = 'admin.html';
-        }
-
-        // Apply settings
-        function applySettings() {
-            const controls = document.getElementById('controls');
-            
-            // Apply control visibility setting
-            controls.className = 'controls show-' + settings.showControls;
-        }
-
-        // Load video by index
-        function loadVideo(index) {
-            if (index < 0 || index >= videos.length) {
-                if (settings.loopPlaylist) {
-                    index = index < 0 ? videos.length - 1 : 0;
-                } else {
-                    return; // Stop if not looping
-                }
-            }
-            
-            currentIndex = index;
-            const video = videos[index];
-            const videoPlayer = document.getElementById('videoPlayer');
-            const iframePlayer = document.getElementById('iframePlayer');
-            const loading = document.getElementById('loading');
-            
-            // Update info
-            document.getElementById('currentVideo').textContent = `${video.name || `Video ${index + 1}`} (${index + 1}/${videos.length})`;
-            
-            // Show loading
-            loading.classList.add('active');
-            
-            // Determine video type and load appropriately
-            if (video.type === 'iframe' || (video.url && video.url.includes('iframe.cloudflarestream.com'))) {
-                // Iframe embed
-                videoPlayer.style.display = 'none';
-                iframePlayer.style.display = 'block';
-                iframePlayer.src = video.url;
-                loading.classList.remove('active');
-            } else {
-                // HLS or direct video
-                iframePlayer.style.display = 'none';
-                videoPlayer.style.display = 'block';
-                
-                if (video.url.includes('.m3u8')) {
-                    // HLS stream
-                    if (Hls.isSupported()) {
-                        if (hls) hls.destroy();
-                        hls = new Hls({
-                            enableWorker: true,
-                            lowLatencyMode: true,
-                        });
-                        hls.loadSource(video.url);
-                        hls.attachMedia(videoPlayer);
-                        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                            loading.classList.remove('active');
-                            if (isPlaying) videoPlayer.play();
-                        });
-                        hls.on(Hls.Events.ERROR, (event, data) => {
-                            console.error('HLS error:', data);
-                            loading.classList.remove('active');
-                        });
-                    } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-                        // Native HLS support (Safari)
-                        videoPlayer.src = video.url;
-                        videoPlayer.addEventListener('loadedmetadata', () => {
-                            loading.classList.remove('active');
-                            if (isPlaying) videoPlayer.play();
-                        }, { once: true });
-                    }
-                } else {
-                    // Direct video URL
-                    videoPlayer.src = video.url;
-                    videoPlayer.addEventListener('loadedmetadata', () => {
-                        loading.classList.remove('active');
-                        if (isPlaying) videoPlayer.play();
-                    }, { once: true });
-                }
-            }
-            
-            // Add to play history
-            if (!playHistory.includes(index)) {
-                playHistory.push(index);
-            }
-        }
-
-        // Get next video index based on play mode
-        function getNextIndex() {
-            switch (settings.playMode) {
-                case 'sequential':
-                    return (currentIndex + 1) % videos.length;
-                    
-                case 'shuffle':
-                    // Play all videos once before repeating
-                    if (playHistory.length >= videos.length) {
-                        playHistory = [];
-                    }
-                    
-                    const unplayed = videos.map((_, i) => i).filter(i => !playHistory.includes(i));
-                    if (unplayed.length > 0) {
-                        return unplayed[Math.floor(Math.random() * unplayed.length)];
-                    } else {
-                        return Math.floor(Math.random() * videos.length);
-                    }
-                    
-                default: // random
-                    return Math.floor(Math.random() * videos.length);
-            }
-        }
-
-        // Setup event listeners
-        function setupEventListeners() {
-            const videoPlayer = document.getElementById('videoPlayer');
-            const playPauseBtn = document.getElementById('playPauseBtn');
-            const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
-            const shuffleBtn = document.getElementById('shuffleBtn');
-            const fullscreenBtn = document.getElementById('fullscreenBtn');
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
-            const videoWrapper = document.getElementById('videoWrapper');
-
-            // Play/Pause
-            playPauseBtn.addEventListener('click', togglePlayPause);
-            videoPlayer.addEventListener('click', togglePlayPause);
-
-            // Navigation
-            prevBtn.addEventListener('click', playPrevious);
-            nextBtn.addEventListener('click', playNext);
-            shuffleBtn.addEventListener('click', playRandom);
-
-            // Fullscreen
-            fullscreenBtn.addEventListener('click', toggleFullscreen);
-
-            // Progress bar
-            videoPlayer.addEventListener('timeupdate', updateProgress);
-            progressContainer.addEventListener('click', seek);
-
-            // Auto-play next
-            videoPlayer.addEventListener('ended', () => {
-                if (settings.autoplay) {
-                    playNext();
-                }
-            });
-
-            // Mobile controls visibility
-            let controlsTimeout;
-            videoWrapper.addEventListener('touchstart', () => {
-                videoWrapper.classList.add('show-controls');
-                clearTimeout(controlsTimeout);
-                controlsTimeout = setTimeout(() => {
-                    videoWrapper.classList.remove('show-controls');
-                }, 3000);
-            });
-        }
-
-        // Playback controls
-        function togglePlayPause() {
-            const videoPlayer = document.getElementById('videoPlayer');
-            const playPauseBtn = document.getElementById('playPauseBtn');
-            
-            if (videoPlayer.paused) {
-                videoPlayer.play();
-                playPauseBtn.innerHTML = '⏸';
-                isPlaying = true;
-            } else {
-                videoPlayer.pause();
-                playPauseBtn.innerHTML = '▶';
-                isPlaying = false;
-            }
-        }
-
-        function playNext() {
-            const nextIndex = getNextIndex();
-            loadVideo(nextIndex);
-        }
-
-        function playPrevious() {
-            loadVideo((currentIndex - 1 + videos.length) % videos.length);
-        }
-
-        function playRandom() {
-            const randomIndex = Math.floor(Math.random() * videos.length);
-            loadVideo(randomIndex);
-        }
-
-        // Progress bar
-        function updateProgress() {
-            const videoPlayer = document.getElementById('videoPlayer');
-            const progressBar = document.getElementById('progressBar');
-            
-            if (videoPlayer.duration) {
-                const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
-                progressBar.style.width = progress + '%';
-            }
-        }
-
-        function seek(e) {
-            const videoPlayer = document.getElementById('videoPlayer');
-            const progressContainer = document.getElementById('progressContainer');
-            const rect = progressContainer.getBoundingClientRect();
-            const pos = (e.clientX - rect.left) / rect.width;
-            
-            if (videoPlayer.duration) {
-                videoPlayer.currentTime = pos * videoPlayer.duration;
-            }
-        }
-
-        // Fullscreen
-        function toggleFullscreen() {
-            const playerContainer = document.getElementById('playerContainer');
-            
-            if (!document.fullscreenElement) {
-                playerContainer.requestFullscreen().catch(err => {
-                    console.log(`Error attempting fullscreen: ${err.message}`);
-                });
-            } else {
-                document.exitFullscreen();
-            }
-        }
-
-        // Keyboard shortcuts
-        function setupKeyboardShortcuts() {
-            document.addEventListener('keydown', (e) => {
-                if (videos.length === 0) return;
-                
-                switch(e.key) {
-                    case ' ':
-                        e.preventDefault();
-                        togglePlayPause();
-                        break;
-                    case 'ArrowRight':
-                        playNext();
-                        break;
-                    case 'ArrowLeft':
-                        playPrevious();
-                        break;
-                    case 'f':
-                        toggleFullscreen();
-                        break;
-                    case 'r':
-                        playRandom();
-                        break;
-                }
-            });
+            loading.style.display = 'none';
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `
+                <h2>⚠️ No Videos Found</h2>
+                <p>No videos were loaded from the admin panel. Please go back to the admin panel and select videos to play.</p>
+                <button onclick="window.close()">Close Player</button>
+            `;
+            document.getElementById('playerContainer').appendChild(errorDiv);
         }
 
         // Initialize on load
         window.addEventListener('load', initPlayer);
-
-        // Listen for storage changes (when admin panel updates)
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'videoStreamPlaylist' || e.key === 'videoStreamSettings') {
-                // Reload configuration
-                loadFromLocalStorage();
-            }
-        });
     </script>
 </body>
 </html>
