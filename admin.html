@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Stream Admin Panel</title>
+    <title>Video Stream Admin Panel - Cloudflare Integration</title>
     <style>
         * {
             margin: 0;
@@ -37,7 +37,7 @@
             gap: 10px;
         }
 
-        .admin-badge {
+        .cloudflare-badge {
             background: linear-gradient(135deg, #f6821f 0%, #ff6b00 100%);
             color: white;
             padding: 4px 12px;
@@ -50,6 +50,40 @@
             text-align: center;
             color: #666;
             margin-bottom: 30px;
+        }
+
+        .api-setup {
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+            border: 2px solid #f6821f;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .api-setup h3 {
+            color: #ea580c;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .api-setup ol {
+            margin-left: 20px;
+            line-height: 1.8;
+            color: #92400e;
+        }
+
+        .api-setup li {
+            margin-bottom: 10px;
+        }
+
+        .api-setup code {
+            background: #fed7aa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 13px;
         }
 
         .grid-layout {
@@ -80,38 +114,61 @@
             gap: 10px;
         }
 
-        .input-section h4 {
-            margin-bottom: 10px;
-            color: #4b5563;
-            font-size: 14px;
-            font-weight: 600;
+        .input-group {
+            margin-bottom: 20px;
         }
 
-        textarea {
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4b5563;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .input-group input,
+        .input-group select {
             width: 100%;
-            min-height: 200px;
-            padding: 15px;
+            padding: 12px;
             border: 2px solid #d1d5db;
             border-radius: 8px;
-            font-family: monospace;
-            font-size: 13px;
-            resize: vertical;
-            background: white;
+            font-size: 14px;
+            transition: border-color 0.2s;
         }
 
-        textarea:focus {
+        .input-group input:focus {
             outline: none;
             border-color: #6366f1;
         }
 
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
+        .input-group small {
+            display: block;
+            margin-top: 5px;
+            color: #9ca3af;
+            font-size: 12px;
+        }
+
+        .password-input-wrapper {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .toggle-password:hover {
+            color: #374151;
         }
 
         button {
-            flex: 1;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
@@ -141,78 +198,22 @@
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
 
-        button.danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        }
-
         button.primary {
             background: linear-gradient(135deg, #f6821f 0%, #ff6b00 100%);
         }
 
-        .url-type-selector {
+        button.danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .button-group {
             display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .url-type-selector label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 8px 15px;
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            transition: all 0.2s;
-            font-size: 14px;
-        }
-
-        .url-type-selector input[type="radio"]:checked + span {
-            color: #f6821f;
-            font-weight: 600;
-        }
-
-        .url-type-selector label:has(input:checked) {
-            background: #fff7ed;
-            border-color: #f6821f;
-        }
-
-        .url-type-selector input[type="radio"] {
-            accent-color: #f6821f;
-        }
-
-        .video-list {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 15px;
-            max-height: 400px;
-            overflow-y: auto;
+            gap: 10px;
             margin-top: 15px;
         }
 
-        .video-item {
-            padding: 12px;
-            margin-bottom: 8px;
-            background: #f9fafb;
-            border-radius: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s;
-            border: 1px solid #e5e7eb;
-        }
-
-        .video-item:hover {
-            background: #f3f4f6;
-            transform: translateX(5px);
-        }
-
-        .video-item button {
-            padding: 5px 10px;
-            font-size: 12px;
-            flex: 0;
+        .button-group button {
+            flex: 1;
         }
 
         .status {
@@ -247,84 +248,123 @@
             color: #92400e;
         }
 
-        .launch-section {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border: 2px solid #0284c7;
-            border-radius: 10px;
-            padding: 25px;
-            text-align: center;
-        }
-
-        .launch-section h3 {
-            color: #0369a1;
-            margin-bottom: 15px;
-        }
-
-        .launch-section p {
-            color: #0c4a6e;
-            margin-bottom: 20px;
-        }
-
-        .launch-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .launch-buttons button {
-            flex: 0 1 200px;
-        }
-
-        .saved-configs {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 15px;
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
             margin-top: 20px;
-        }
-
-        .saved-configs h4 {
-            color: #4b5563;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        .config-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            max-height: 500px;
+            overflow-y: auto;
             padding: 10px;
-            background: #f9fafb;
-            border-radius: 5px;
-            margin-bottom: 8px;
         }
 
-        .config-item:hover {
-            background: #f3f4f6;
+        .video-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
         }
 
-        .url-display {
+        .video-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .video-card.selected {
+            border-color: #6366f1;
+            background: #eef2ff;
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 169px;
             background: #1f2937;
-            color: #10b981;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-thumbnail .duration {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .video-info {
             padding: 15px;
+        }
+
+        .video-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .video-meta {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .video-checkbox {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        .video-card.selected .video-checkbox {
+            background: #6366f1;
+            border-color: #6366f1;
+        }
+
+        .video-card.selected .video-checkbox::after {
+            content: '✓';
+            color: white;
+            font-weight: bold;
+        }
+
+        .selection-bar {
+            background: #f3f4f6;
             border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            word-break: break-all;
-            margin-top: 15px;
-            display: none;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .url-display.show {
-            display: block;
+        .selection-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
 
-        .copy-button {
-            float: right;
-            padding: 5px 10px;
-            font-size: 12px;
-            background: #10b981;
+        .selection-info span {
+            color: #4b5563;
+            font-weight: 500;
         }
 
         .tab-buttons {
@@ -359,59 +399,85 @@
             display: block;
         }
 
-        .settings-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
         }
 
-        .setting-group {
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-content {
             background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .fetch-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .fetch-options label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .instructions-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
             padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-        }
-
-        .setting-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #4b5563;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .setting-group select,
-        .setting-group input {
-            width: 100%;
-            padding: 8px;
-            border: 2px solid #d1d5db;
+            margin-top: 20px;
             border-radius: 5px;
         }
 
-        .setting-group small {
-            display: block;
-            margin-top: 5px;
-            color: #9ca3af;
-            font-size: 12px;
+        .instructions-box h4 {
+            color: #1e40af;
+            margin-bottom: 10px;
         }
 
-        .preview-player {
+        .instructions-box p {
+            color: #3730a3;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        textarea {
             width: 100%;
-            aspect-ratio: 16/9;
-            background: #000;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
-        }
-
-        .saving {
-            animation: pulse 1s infinite;
+            min-height: 150px;
+            padding: 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            resize: vertical;
         }
     </style>
 </head>
@@ -419,530 +485,504 @@
     <div class="container">
         <h1>
             🎛️ Video Stream Control Panel
-            <span class="admin-badge">Admin</span>
+            <span class="cloudflare-badge">API Integration</span>
         </h1>
-        <p class="subtitle">Configure and manage your video stream playlist</p>
+        <p class="subtitle">Automatically fetch all videos from your Cloudflare Stream account</p>
 
         <div id="status" class="status info">
             <span>📊</span>
-            <span>Ready to configure your video stream</span>
+            <span>Ready to connect to Cloudflare Stream API</span>
+        </div>
+
+        <div class="api-setup">
+            <h3>
+                <span>🔐</span>
+                <span>Cloudflare Stream API Setup</span>
+            </h3>
+            <ol>
+                <li>
+                    <strong>Get your Account ID:</strong> Go to Cloudflare Dashboard → Stream → Look for <code>Account ID</code> in the right sidebar
+                </li>
+                <li>
+                    <strong>Create an API Token:</strong> Go to <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">My Profile → API Tokens</a> → Create Token → Custom Token with <code>Stream:Read</code> permission
+                </li>
+                <li>
+                    <strong>Enter credentials below</strong> and click "Connect to Cloudflare"
+                </li>
+                <li>
+                    <strong>Select videos</strong> from your account and launch the player
+                </li>
+            </ol>
         </div>
 
         <div class="grid-layout">
-            <!-- Left Panel: Input & Configuration -->
+            <!-- Left Panel: API Configuration -->
             <div class="panel">
                 <h3>
-                    <span>📥</span>
-                    <span>Video Configuration</span>
+                    <span>🔑</span>
+                    <span>API Configuration</span>
                 </h3>
 
-                <div class="input-section">
-                    <h4>Select URL Type:</h4>
-                    <div class="url-type-selector">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="switchTab('api')">API Method</button>
+                    <button class="tab-button" onclick="switchTab('manual')">Manual Input</button>
+                </div>
+
+                <!-- API Method Tab -->
+                <div id="api" class="tab-content active">
+                    <div class="input-group">
+                        <label for="accountId">Cloudflare Account ID</label>
+                        <input type="text" id="accountId" placeholder="Your Account ID (32 characters)">
+                        <small>Found in Cloudflare Dashboard → Stream → Right Sidebar</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="apiToken">API Token</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="apiToken" placeholder="Your API Token">
+                            <button type="button" class="toggle-password" onclick="togglePassword()">👁️</button>
+                        </div>
+                        <small>Token needs Stream:Read permission</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="customerSubdomain">Customer Subdomain (Optional)</label>
+                        <input type="text" id="customerSubdomain" placeholder="e.g., customer-f5a2">
+                        <small>The subdomain from your video URLs (if you know it)</small>
+                    </div>
+
+                    <div class="fetch-options">
                         <label>
-                            <input type="radio" name="urlType" value="hls" checked>
-                            <span>HLS/M3U8</span>
+                            <input type="checkbox" id="fetchThumbnails" checked>
+                            <span>Fetch thumbnails</span>
                         </label>
                         <label>
-                            <input type="radio" name="urlType" value="iframe">
-                            <span>Iframe URLs</span>
+                            <input type="checkbox" id="autoSelectAll" checked>
+                            <span>Auto-select all videos</span>
                         </label>
-                        <label>
-                            <input type="radio" name="urlType" value="id">
-                            <span>Video IDs</span>
-                        </label>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="primary" onclick="connectToCloudflare()">
+                            🔗 Connect to Cloudflare
+                        </button>
+                        <button class="secondary" onclick="testConnection()">
+                            🧪 Test Connection
+                        </button>
+                    </div>
+
+                    <div class="instructions-box">
+                        <h4>💡 Pro Tip</h4>
+                        <p>Your API credentials are only used in your browser and never sent to any external server. For production use, consider using a proxy server to keep your API token secure.</p>
                     </div>
                 </div>
 
-                <div class="input-section">
-                    <h4>Enter Video URLs (one per line):</h4>
-                    <textarea id="videoUrls" placeholder="Paste your Cloudflare Stream URLs here, one per line
+                <!-- Manual Input Tab -->
+                <div id="manual" class="tab-content">
+                    <div class="input-group">
+                        <label for="manualUrls">Enter Video URLs Manually</label>
+                        <textarea id="manualUrls" placeholder="Paste your Cloudflare Stream URLs here, one per line
 
 Example:
 https://customer-xxxxx.cloudflarestream.com/abc123/manifest/video.m3u8
 https://customer-xxxxx.cloudflarestream.com/def456/manifest/video.m3u8"></textarea>
-                </div>
+                    </div>
 
-                <div class="button-group">
-                    <button onclick="processVideos()">
-                        ✨ Process Videos
-                    </button>
-                    <button class="secondary" onclick="clearInput()">
-                        🗑️ Clear
-                    </button>
-                </div>
-
-                <div class="video-list" id="videoList" style="display: none;">
-                    <h4 style="margin-bottom: 10px;">📹 Processed Videos:</h4>
-                    <div id="videoItems"></div>
+                    <div class="button-group">
+                        <button onclick="processManualUrls()">
+                            ✨ Process URLs
+                        </button>
+                        <button class="secondary" onclick="clearManual()">
+                            🗑️ Clear
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Right Panel: Launch Options -->
+            <!-- Right Panel: Video Selection -->
             <div class="panel">
                 <h3>
-                    <span>🚀</span>
-                    <span>Launch Options</span>
+                    <span>📹</span>
+                    <span>Your Videos</span>
+                    <span id="videoCount" style="font-size: 14px; color: #6b7280;"></span>
                 </h3>
 
-                <div class="tab-buttons">
-                    <button class="tab-button active" onclick="switchTab('quick')">Quick Launch</button>
-                    <button class="tab-button" onclick="switchTab('settings')">Settings</button>
-                    <button class="tab-button" onclick="switchTab('saved')">Saved Configs</button>
-                </div>
-
-                <!-- Quick Launch Tab -->
-                <div id="quick" class="tab-content active">
-                    <div class="launch-section">
-                        <h3>🎬 Launch Production Player</h3>
-                        <p>Your videos will be loaded automatically in the production player</p>
-                        
-                        <div class="launch-buttons">
-                            <button class="success" onclick="launchPlayer('same')" id="launchSameBtn" disabled>
-                                📺 Open Player
-                            </button>
-                            <button class="primary" onclick="launchPlayer('new')" id="launchNewBtn" disabled>
-                                🔗 Open in New Tab
-                            </button>
-                            <button onclick="launchPlayer('preview')" id="previewBtn" disabled>
-                                👁️ Preview Mode
-                            </button>
-                        </div>
+                <div class="selection-bar">
+                    <div class="selection-info">
+                        <span id="selectedCount">No videos loaded</span>
                     </div>
-
-                    <div style="margin-top: 20px;">
-                        <h4 style="margin-bottom: 10px; color: #4b5563;">📋 Share Links:</h4>
-                        <button class="secondary" onclick="generateShareLink()" style="width: 100%;">
-                            Generate Shareable Link
-                        </button>
-                        <div id="shareUrl" class="url-display">
-                            <button class="copy-button" onclick="copyShareLink()">📋 Copy</button>
-                            <span id="shareUrlText"></span>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 20px;">
-                        <h4 style="margin-bottom: 10px; color: #4b5563;">🔌 Embed Code:</h4>
-                        <button class="secondary" onclick="generateEmbedCode()" style="width: 100%;">
-                            Generate Embed Code
-                        </button>
-                        <div id="embedCode" class="url-display">
-                            <button class="copy-button" onclick="copyEmbedCode()">📋 Copy</button>
-                            <code id="embedCodeText"></code>
-                        </div>
+                    <div>
+                        <button onclick="selectAll()" style="padding: 8px 16px; font-size: 14px;">Select All</button>
+                        <button class="secondary" onclick="deselectAll()" style="padding: 8px 16px; font-size: 14px; margin-left: 10px;">Deselect All</button>
                     </div>
                 </div>
 
-                <!-- Settings Tab -->
-                <div id="settings" class="tab-content">
-                    <h4 style="margin-bottom: 15px; color: #4b5563;">⚙️ Player Settings</h4>
-                    
-                    <div class="settings-grid">
-                        <div class="setting-group">
-                            <label for="playMode">Play Mode:</label>
-                            <select id="playMode">
-                                <option value="random">Random</option>
-                                <option value="sequential">Sequential</option>
-                                <option value="shuffle">Shuffle (No Repeats)</option>
-                            </select>
-                        </div>
-
-                        <div class="setting-group">
-                            <label for="autoplay">Auto-play:</label>
-                            <select id="autoplay">
-                                <option value="true">Enabled</option>
-                                <option value="false">Disabled</option>
-                            </select>
-                        </div>
-
-                        <div class="setting-group">
-                            <label for="showControls">Controls:</label>
-                            <select id="showControls">
-                                <option value="hover">Show on Hover</option>
-                                <option value="always">Always Visible</option>
-                                <option value="hidden">Hidden</option>
-                            </select>
-                        </div>
-
-                        <div class="setting-group">
-                            <label for="loopPlaylist">Loop Playlist:</label>
-                            <select id="loopPlaylist">
-                                <option value="true">Yes</option>
-                                <option value="false">No</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="button-group" style="margin-top: 20px;">
-                        <button class="success" onclick="saveSettings()">
-                            💾 Save Settings
-                        </button>
-                        <button class="secondary" onclick="resetSettings()">
-                            🔄 Reset to Default
-                        </button>
-                    </div>
+                <div class="video-grid" id="videoGrid">
+                    <p style="text-align: center; color: #9ca3af; padding: 40px;">
+                        Connect to Cloudflare to load your videos
+                    </p>
                 </div>
 
-                <!-- Saved Configs Tab -->
-                <div id="saved" class="tab-content">
-                    <h4 style="margin-bottom: 15px; color: #4b5563;">💾 Saved Configurations</h4>
-                    
-                    <div class="input-section">
-                        <input type="text" id="configName" placeholder="Enter config name..." style="width: 100%; padding: 10px; border: 2px solid #d1d5db; border-radius: 5px;">
-                        <button class="success" onclick="saveConfiguration()" style="width: 100%; margin-top: 10px;">
-                            💾 Save Current Configuration
-                        </button>
-                    </div>
-
-                    <div class="saved-configs" id="savedConfigs">
-                        <h4>Saved Configurations:</h4>
-                        <div id="configList">
-                            <p style="color: #9ca3af; text-align: center;">No saved configurations yet</p>
-                        </div>
-                    </div>
+                <div class="button-group" style="margin-top: 20px;">
+                    <button class="success" onclick="launchWithSelected()" id="launchBtn" disabled>
+                        📺 Launch Player with Selected
+                    </button>
+                    <button onclick="saveSelection()" id="saveBtn" disabled>
+                        💾 Save Selection
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p id="loadingText">Connecting to Cloudflare...</p>
+        </div>
+    </div>
+
     <script>
-        let processedVideos = [];
-        let playerSettings = {
-            playMode: 'random',
-            autoplay: true,
-            showControls: 'hover',
-            loopPlaylist: true
-        };
+        let allVideos = [];
+        let selectedVideos = new Set();
+        let accountConfig = {};
 
         // Initialize
         function init() {
-            loadSavedConfigurations();
-            loadLastSession();
-            
-            // Check if we have videos in localStorage
-            const savedVideos = localStorage.getItem('videoStreamPlaylist');
-            if (savedVideos) {
-                processedVideos = JSON.parse(savedVideos);
-                if (processedVideos.length > 0) {
-                    displayProcessedVideos();
-                    enableLaunchButtons();
-                    updateStatus(`Loaded ${processedVideos.length} videos from last session`, 'success');
-                }
+            // Load saved credentials if any
+            const savedConfig = localStorage.getItem('cloudflareConfig');
+            if (savedConfig) {
+                const config = JSON.parse(savedConfig);
+                document.getElementById('accountId').value = config.accountId || '';
+                document.getElementById('customerSubdomain').value = config.customerSubdomain || '';
+                // Don't auto-fill API token for security
             }
         }
 
-        // Process video URLs
-        function processVideos() {
-            const urlType = document.querySelector('input[name="urlType"]:checked').value;
-            const urlsText = document.getElementById('videoUrls').value.trim();
+        // Toggle password visibility
+        function togglePassword() {
+            const input = document.getElementById('apiToken');
+            const button = event.target;
             
-            if (!urlsText) {
-                updateStatus('Please enter at least one video URL', 'error');
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = '🔒';
+            } else {
+                input.type = 'password';
+                button.textContent = '👁️';
+            }
+        }
+
+        // Test API connection
+        async function testConnection() {
+            const accountId = document.getElementById('accountId').value.trim();
+            const apiToken = document.getElementById('apiToken').value.trim();
+            
+            if (!accountId || !apiToken) {
+                updateStatus('Please enter Account ID and API Token', 'error');
                 return;
             }
             
-            const urls = urlsText.split('\n').filter(url => url.trim());
-            processedVideos = [];
+            showLoading('Testing connection...');
             
-            urls.forEach((url, index) => {
-                const trimmedUrl = url.trim();
-                let videoData = {
-                    name: `Video ${index + 1}`,
-                    originalUrl: trimmedUrl
-                };
+            try {
+                const response = await fetch('https://stream-proxy.fernando-is-sanchez.workers.dev/api/videos', {
+                    method: 'GET',
+                    headers: {
+                        'X-Account-ID': accountId,
+                        'X-API-Token': apiToken
+                    }
+                });
                 
-                switch(urlType) {
-                    case 'hls':
-                        videoData.url = trimmedUrl;
-                        videoData.type = 'hls';
-                        break;
-                        
-                    case 'iframe':
-                        videoData.url = trimmedUrl;
-                        videoData.type = 'iframe';
-                        break;
-                        
-                    case 'id':
-                        // Convert ID to full URLs
-                        videoData.url = `https://customer-xxxxx.cloudflarestream.com/${trimmedUrl}/manifest/video.m3u8`;
-                        videoData.type = 'hls';
-                        videoData.iframeUrl = `https://iframe.cloudflarestream.com/${trimmedUrl}`;
-                        break;
+                hideLoading();
+                
+                if (response.ok) {
+                    updateStatus('✅ Connection successful! You can now fetch videos.', 'success');
+                } else {
+                    const error = await response.json();
+                    updateStatus(`Connection failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`, 'error');
                 }
-                
-                processedVideos.push(videoData);
-            });
-            
-            if (processedVideos.length > 0) {
-                // Save to localStorage
-                localStorage.setItem('videoStreamPlaylist', JSON.stringify(processedVideos));
-                localStorage.setItem('videoStreamSettings', JSON.stringify(playerSettings));
-                
-                displayProcessedVideos();
-                enableLaunchButtons();
-                updateStatus(`Successfully processed ${processedVideos.length} videos`, 'success');
+            } catch (error) {
+                hideLoading();
+                updateStatus(`Connection error: ${error.message}`, 'error');
             }
         }
 
-        // Display processed videos
-        function displayProcessedVideos() {
-            const videoList = document.getElementById('videoList');
-            const videoItems = document.getElementById('videoItems');
+        // Connect to Cloudflare and fetch videos
+        async function connectToCloudflare() {
+            const accountId = document.getElementById('accountId').value.trim();
+            const apiToken = document.getElementById('apiToken').value.trim();
+            const customerSubdomain = document.getElementById('customerSubdomain').value.trim();
             
-            videoList.style.display = 'block';
-            videoItems.innerHTML = '';
+            if (!accountId || !apiToken) {
+                updateStatus('Please enter Account ID and API Token', 'error');
+                return;
+            }
             
-            processedVideos.forEach((video, index) => {
-                const item = document.createElement('div');
-                item.className = 'video-item';
-                item.innerHTML = `
-                    <span>${video.name} (${video.type})</span>
-                    <button class="danger" onclick="removeVideo(${index})">Remove</button>
+            // Save config (except token)
+            accountConfig = { accountId, customerSubdomain };
+            localStorage.setItem('cloudflareConfig', JSON.stringify(accountConfig));
+            
+            showLoading('Fetching videos from Cloudflare...');
+            
+            try {
+                // Fetch videos from Cloudflare Stream API via Worker proxy
+                const response = await fetch('https://stream-proxy.fernando-is-sanchez.workers.dev/api/videos', {
+                    method: 'GET',
+                    headers: {
+                        'X-Account-ID': accountId,
+                        'X-API-Token': apiToken
+                    }
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || error.error || 'Failed to fetch videos');
+                }
+                
+                const data = await response.json();
+                
+                // Worker returns {success: true, videos: [...], total: N}
+                // The videos are already processed by the Worker
+                allVideos = data.videos || [];
+                
+                // Videos are already processed by the Worker with correct URLs
+                hideLoading();
+                displayVideos();
+                
+                if (document.getElementById('autoSelectAll').checked) {
+                    selectAll();
+                }
+                
+                updateStatus(`Successfully loaded ${allVideos.length} videos from Cloudflare`, 'success');
+                
+            } catch (error) {
+                hideLoading();
+                console.error('Cloudflare API Error:', error);
+                
+                // Provide fallback instructions for CORS issues
+                if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                    showCORSInstructions();
+                } else {
+                    updateStatus(`Error: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // Show CORS instructions
+        function showCORSInstructions() {
+            updateStatus('CORS Error: Direct API calls are blocked by browser security', 'error');
+            
+            const instructions = `
+                <div class="instructions-box" style="margin-top: 20px;">
+                    <h4>⚠️ Browser Security Block</h4>
+                    <p>Direct API calls from the browser are blocked by CORS policy. Here are your options:</p>
+                    <ol style="margin-top: 10px; margin-left: 20px;">
+                        <li><strong>Use Manual Input:</strong> Switch to the Manual Input tab and paste your video URLs</li>
+                        <li><strong>Use a Proxy Server:</strong> Set up a simple proxy server to make API calls</li>
+                        <li><strong>Use Cloudflare Workers:</strong> Create a Worker to fetch your videos</li>
+                        <li><strong>Browser Extension:</strong> Temporarily disable CORS for development</li>
+                    </ol>
+                    <p style="margin-top: 10px;">
+                        <strong>Quick Solution:</strong> Go to your Cloudflare Stream dashboard, copy your video URLs, and paste them in the Manual Input tab.
+                    </p>
+                </div>
+            `;
+            
+            const panel = document.querySelector('.panel');
+            const div = document.createElement('div');
+            div.innerHTML = instructions;
+            panel.appendChild(div.firstElementChild);
+        }
+
+        // Display videos in grid
+        function displayVideos() {
+            const grid = document.getElementById('videoGrid');
+            const count = document.getElementById('videoCount');
+            
+            count.textContent = `(${allVideos.length} total)`;
+            grid.innerHTML = '';
+            
+            allVideos.forEach((video, index) => {
+                const card = document.createElement('div');
+                card.className = 'video-card';
+                card.dataset.index = index;
+                
+                // Format duration
+                const duration = formatDuration(video.duration);
+                
+                card.innerHTML = `
+                    <div class="video-thumbnail">
+                        <div class="video-checkbox"></div>
+                        ${video.thumbnail ? 
+                            `<img src="${video.thumbnail}" alt="${video.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE2OSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE2OSIgZmlsbD0iIzFmMjkzNyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmaWxsPSIjNmI3MjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiPk5vIFRodW1ibmFpbDwvdGV4dD48L3N2Zz4='">` :
+                            `<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #6b7280;">📹</div>`
+                        }
+                        ${duration ? `<span class="duration">${duration}</span>` : ''}
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title" title="${video.name}">${video.name}</div>
+                        <div class="video-meta">
+                            ${new Date(video.uploaded).toLocaleDateString()}
+                            ${video.size ? ` • ${formatFileSize(video.size)}` : ''}
+                        </div>
+                    </div>
                 `;
-                videoItems.appendChild(item);
+                
+                card.addEventListener('click', () => toggleVideoSelection(index));
+                grid.appendChild(card);
             });
+            
+            updateSelectionCount();
         }
 
-        // Remove video
-        function removeVideo(index) {
-            processedVideos.splice(index, 1);
-            localStorage.setItem('videoStreamPlaylist', JSON.stringify(processedVideos));
-            displayProcessedVideos();
+        // Toggle video selection
+        function toggleVideoSelection(index) {
+            const card = document.querySelector(`[data-index="${index}"]`);
             
-            if (processedVideos.length === 0) {
-                disableLaunchButtons();
-                document.getElementById('videoList').style.display = 'none';
+            if (selectedVideos.has(index)) {
+                selectedVideos.delete(index);
+                card.classList.remove('selected');
+            } else {
+                selectedVideos.add(index);
+                card.classList.add('selected');
             }
             
-            updateStatus(`Video removed`, 'info');
+            updateSelectionCount();
         }
 
-        // Enable launch buttons
-        function enableLaunchButtons() {
-            document.getElementById('launchSameBtn').disabled = false;
-            document.getElementById('launchNewBtn').disabled = false;
-            document.getElementById('previewBtn').disabled = false;
+        // Select all videos
+        function selectAll() {
+            allVideos.forEach((_, index) => {
+                selectedVideos.add(index);
+                const card = document.querySelector(`[data-index="${index}"]`);
+                if (card) card.classList.add('selected');
+            });
+            updateSelectionCount();
         }
 
-        // Disable launch buttons
-        function disableLaunchButtons() {
-            document.getElementById('launchSameBtn').disabled = true;
-            document.getElementById('launchNewBtn').disabled = true;
-            document.getElementById('previewBtn').disabled = true;
+        // Deselect all videos
+        function deselectAll() {
+            selectedVideos.clear();
+            document.querySelectorAll('.video-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            updateSelectionCount();
         }
 
-        // Launch player
-        function launchPlayer(mode) {
-            if (processedVideos.length === 0) {
-                updateStatus('Please add videos first', 'error');
+        // Update selection count
+        function updateSelectionCount() {
+            const count = document.getElementById('selectedCount');
+            const launchBtn = document.getElementById('launchBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            
+            if (allVideos.length === 0) {
+                count.textContent = 'No videos loaded';
+                launchBtn.disabled = true;
+                saveBtn.disabled = true;
+            } else if (selectedVideos.size === 0) {
+                count.textContent = 'No videos selected';
+                launchBtn.disabled = true;
+                saveBtn.disabled = true;
+            } else {
+                count.textContent = `${selectedVideos.size} of ${allVideos.length} selected`;
+                launchBtn.disabled = false;
+                saveBtn.disabled = false;
+            }
+        }
+
+        // Launch player with selected videos
+        function launchWithSelected() {
+            if (selectedVideos.size === 0) {
+                updateStatus('Please select at least one video', 'error');
                 return;
             }
             
-            // Save current configuration
-            localStorage.setItem('videoStreamPlaylist', JSON.stringify(processedVideos));
-            localStorage.setItem('videoStreamSettings', JSON.stringify(playerSettings));
+            // Get selected videos
+            const playlist = Array.from(selectedVideos).map(index => allVideos[index]);
             
-            // Assuming player.html is in the same directory
-            const playerUrl = 'player.html';
-            
-            switch(mode) {
-                case 'same':
-                    window.location.href = playerUrl;
-                    break;
-                case 'new':
-                    window.open(playerUrl, '_blank');
-                    break;
-                case 'preview':
-                    // Open in smaller window for preview
-                    window.open(playerUrl, 'preview', 'width=1080,height=650');
-                    break;
-            }
-            
-            updateStatus('Launching player...', 'success');
-        }
-
-        // Generate shareable link
-        function generateShareLink() {
-            if (processedVideos.length === 0) {
-                updateStatus('Please add videos first', 'error');
-                return;
-            }
-            
-            // Create base64 encoded configuration
-            const config = {
-                videos: processedVideos,
-                settings: playerSettings
-            };
-            const encoded = btoa(JSON.stringify(config));
-            
-            // Generate URL with config parameter
-            const baseUrl = window.location.origin + window.location.pathname.replace('admin.html', 'player.html');
-            const shareUrl = `${baseUrl}?config=${encoded}`;
-            
-            document.getElementById('shareUrl').classList.add('show');
-            document.getElementById('shareUrlText').textContent = shareUrl;
-            
-            updateStatus('Share link generated!', 'success');
-        }
-
-        // Generate embed code
-        function generateEmbedCode() {
-            if (processedVideos.length === 0) {
-                updateStatus('Please add videos first', 'error');
-                return;
-            }
-            
-            const baseUrl = window.location.origin + window.location.pathname.replace('admin.html', 'player.html');
-            const embedCode = `<iframe 
-    src="${baseUrl}"
-    width="1080" 
-    height="608"
-    frameborder="0"
-    allowfullscreen>
-</iframe>`;
-            
-            document.getElementById('embedCode').classList.add('show');
-            document.getElementById('embedCodeText').textContent = embedCode;
-            
-            updateStatus('Embed code generated!', 'success');
-        }
-
-        // Copy functions
-        function copyShareLink() {
-            const text = document.getElementById('shareUrlText').textContent;
-            navigator.clipboard.writeText(text);
-            updateStatus('Link copied to clipboard!', 'success');
-        }
-
-        function copyEmbedCode() {
-            const text = document.getElementById('embedCodeText').textContent;
-            navigator.clipboard.writeText(text);
-            updateStatus('Embed code copied!', 'success');
-        }
-
-        // Settings functions
-        function saveSettings() {
-            playerSettings.playMode = document.getElementById('playMode').value;
-            playerSettings.autoplay = document.getElementById('autoplay').value === 'true';
-            playerSettings.showControls = document.getElementById('showControls').value;
-            playerSettings.loopPlaylist = document.getElementById('loopPlaylist').value === 'true';
-            
-            localStorage.setItem('videoStreamSettings', JSON.stringify(playerSettings));
-            updateStatus('Settings saved!', 'success');
-        }
-
-        function resetSettings() {
-            playerSettings = {
+            // Save to localStorage
+            localStorage.setItem('videoStreamPlaylist', JSON.stringify(playlist));
+            localStorage.setItem('videoStreamSettings', JSON.stringify({
                 playMode: 'random',
                 autoplay: true,
                 showControls: 'hover',
                 loopPlaylist: true
-            };
+            }));
             
-            document.getElementById('playMode').value = playerSettings.playMode;
-            document.getElementById('autoplay').value = String(playerSettings.autoplay);
-            document.getElementById('showControls').value = playerSettings.showControls;
-            document.getElementById('loopPlaylist').value = String(playerSettings.loopPlaylist);
-            
-            localStorage.setItem('videoStreamSettings', JSON.stringify(playerSettings));
-            updateStatus('Settings reset to default', 'info');
+            // Open player
+            window.open('player.html', '_blank');
+            updateStatus(`Launched player with ${playlist.length} videos`, 'success');
         }
 
-        // Configuration management
-        function saveConfiguration() {
-            const name = document.getElementById('configName').value.trim();
-            if (!name) {
-                updateStatus('Please enter a configuration name', 'error');
-                return;
-            }
-            
-            if (processedVideos.length === 0) {
-                updateStatus('Please add videos first', 'error');
-                return;
-            }
-            
-            const configs = JSON.parse(localStorage.getItem('savedConfigurations') || '[]');
-            const newConfig = {
-                name: name,
-                date: new Date().toISOString(),
-                videos: processedVideos,
-                settings: playerSettings
-            };
-            
-            configs.push(newConfig);
-            localStorage.setItem('savedConfigurations', JSON.stringify(configs));
-            
-            document.getElementById('configName').value = '';
-            loadSavedConfigurations();
-            updateStatus(`Configuration "${name}" saved!`, 'success');
+        // Save selection
+        function saveSelection() {
+            const playlist = Array.from(selectedVideos).map(index => allVideos[index]);
+            localStorage.setItem('videoStreamPlaylist', JSON.stringify(playlist));
+            updateStatus(`Saved ${playlist.length} videos to playlist`, 'success');
         }
 
-        function loadSavedConfigurations() {
-            const configs = JSON.parse(localStorage.getItem('savedConfigurations') || '[]');
-            const configList = document.getElementById('configList');
+        // Process manual URLs
+        function processManualUrls() {
+            const urlsText = document.getElementById('manualUrls').value.trim();
             
-            if (configs.length === 0) {
-                configList.innerHTML = '<p style="color: #9ca3af; text-align: center;">No saved configurations yet</p>';
+            if (!urlsText) {
+                updateStatus('Please enter at least one URL', 'error');
                 return;
             }
             
-            configList.innerHTML = '';
-            configs.forEach((config, index) => {
-                const item = document.createElement('div');
-                item.className = 'config-item';
-                item.innerHTML = `
-                    <span>${config.name} (${config.videos.length} videos)</span>
-                    <div>
-                        <button onclick="loadConfiguration(${index})" style="padding: 5px 10px; font-size: 12px; margin-right: 5px;">Load</button>
-                        <button class="danger" onclick="deleteConfiguration(${index})" style="padding: 5px 10px; font-size: 12px;">Delete</button>
-                    </div>
-                `;
-                configList.appendChild(item);
+            const urls = urlsText.split('\n').filter(url => url.trim());
+            allVideos = urls.map((url, index) => {
+                const trimmedUrl = url.trim();
+                
+                // Try to extract video ID from URL
+                const idMatch = trimmedUrl.match(/([a-f0-9]{32})/i);
+                const videoId = idMatch ? idMatch[1] : `video_${index}`;
+                
+                return {
+                    id: videoId,
+                    name: `Video ${index + 1}`,
+                    url: trimmedUrl,
+                    type: trimmedUrl.includes('.m3u8') ? 'hls' : 'iframe',
+                    ready: true
+                };
             });
+            
+            displayVideos();
+            selectAll();
+            updateStatus(`Processed ${allVideos.length} videos`, 'success');
         }
 
-        function loadConfiguration(index) {
-            const configs = JSON.parse(localStorage.getItem('savedConfigurations') || '[]');
-            const config = configs[index];
-            
-            processedVideos = config.videos;
-            playerSettings = config.settings;
-            
-            localStorage.setItem('videoStreamPlaylist', JSON.stringify(processedVideos));
-            localStorage.setItem('videoStreamSettings', JSON.stringify(playerSettings));
-            
-            displayProcessedVideos();
-            enableLaunchButtons();
-            
-            // Update settings UI
-            document.getElementById('playMode').value = playerSettings.playMode;
-            document.getElementById('autoplay').value = String(playerSettings.autoplay);
-            document.getElementById('showControls').value = playerSettings.showControls;
-            document.getElementById('loopPlaylist').value = String(playerSettings.loopPlaylist);
-            
-            updateStatus(`Loaded configuration: ${config.name}`, 'success');
-        }
-
-        function deleteConfiguration(index) {
-            const configs = JSON.parse(localStorage.getItem('savedConfigurations') || '[]');
-            const name = configs[index].name;
-            
-            configs.splice(index, 1);
-            localStorage.setItem('savedConfigurations', JSON.stringify(configs));
-            
-            loadSavedConfigurations();
-            updateStatus(`Deleted configuration: ${name}`, 'info');
+        // Clear manual input
+        function clearManual() {
+            document.getElementById('manualUrls').value = '';
+            updateStatus('Cleared manual input', 'info');
         }
 
         // Utility functions
-        function clearInput() {
-            document.getElementById('videoUrls').value = '';
-            updateStatus('Input cleared', 'info');
+        function formatDuration(seconds) {
+            if (!seconds) return '';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            
+            if (h > 0) {
+                return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes) return '';
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
         }
 
         function updateStatus(message, type) {
             const statusEl = document.getElementById('status');
-            statusEl.className = `status ${type} saving`;
+            statusEl.className = `status ${type}`;
             
             const icons = {
                 success: '✅',
@@ -955,40 +995,28 @@ https://customer-xxxxx.cloudflarestream.com/def456/manifest/video.m3u8"></textar
                 <span>${icons[type] || '📊'}</span>
                 <span>${message}</span>
             `;
-            
-            setTimeout(() => {
-                statusEl.classList.remove('saving');
-            }, 1000);
+        }
+
+        function showLoading(text) {
+            document.getElementById('loadingOverlay').classList.add('show');
+            document.getElementById('loadingText').textContent = text;
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('show');
         }
 
         function switchTab(tabName) {
-            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
             
-            // Remove active class from all buttons
             document.querySelectorAll('.tab-button').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // Show selected tab
             document.getElementById(tabName).classList.add('active');
-            
-            // Add active class to clicked button
             event.target.classList.add('active');
-        }
-
-        function loadLastSession() {
-            // Load saved settings
-            const savedSettings = localStorage.getItem('videoStreamSettings');
-            if (savedSettings) {
-                playerSettings = JSON.parse(savedSettings);
-                document.getElementById('playMode').value = playerSettings.playMode;
-                document.getElementById('autoplay').value = String(playerSettings.autoplay);
-                document.getElementById('showControls').value = playerSettings.showControls || 'hover';
-                document.getElementById('loopPlaylist').value = String(playerSettings.loopPlaylist !== false);
-            }
         }
 
         // Initialize on load
