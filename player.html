@@ -16,15 +16,21 @@
             background: #000;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
 
         #playerContainer {
             position: relative;
-            width: 100vw;
-            height: 100vh;
+            width: 75vw;
+            height: 75vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: #000;
+            box-shadow: 0 0 80px rgba(0,0,0,0.9);
         }
 
         #videoPlayer {
@@ -93,16 +99,41 @@
             color: white;
             font-size: 24px;
             text-align: center;
+            z-index: 100;
+            background: rgba(0,0,0,0.8);
+            padding: 40px;
+            border-radius: 12px;
         }
 
         .loading-spinner {
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top: 4px solid #667eea;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
+            width: 60px;
+            height: 60px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        /* Reshuffling indicator */
+        .reshuffle-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(102, 126, 234, 0.95);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .reshuffle-message.show {
+            opacity: 1;
         }
 
         @keyframes spin {
@@ -162,17 +193,25 @@
             <div class="loading-spinner"></div>
             <div>Loading videos...</div>
         </div>
+
+        <!-- Reshuffle indicator -->
+        <div class="reshuffle-message" id="reshuffleMessage">
+            <div class="loading-spinner" style="margin: 0 auto 15px;"></div>
+            <div>Reshuffling playlist...</div>
+        </div>
     </div>
 
     <script>
         let videos = [];
         let shuffledPlaylist = [];
         let currentPlaylistIndex = 0;
+        let hasStartedPlaying = false;
         let hls = null;
         const videoPlayer = document.getElementById('videoPlayer');
         const videoIframe = document.getElementById('videoIframe');
         const loading = document.getElementById('loading');
         const progressBar = document.getElementById('progressBar');
+        const reshuffleMessage = document.getElementById('reshuffleMessage');
 
         // Initialize player
         function initPlayer() {
@@ -225,7 +264,12 @@
             const video = videos[videoIndex];
             console.log('Playing video:', video);
             
-            loading.style.display = 'flex';
+            // Only show loading on first video
+            if (currentPlaylistIndex === 0 && !hasStartedPlaying) {
+                loading.style.display = 'flex';
+                hasStartedPlaying = true;
+            }
+            
             progressBar.style.width = '0%';
             
             // Update video info
@@ -358,28 +402,31 @@
             currentPlaylistIndex++;
             
             if (currentPlaylistIndex >= shuffledPlaylist.length) {
-                // All videos played once - stop (no repeating)
-                showEndMessage();
+                // All videos played - reshuffle and continue!
+                reshuffleAndContinue();
                 return;
             }
             
             playVideo(shuffledPlaylist[currentPlaylistIndex]);
         }
 
-        // Show end message
-        function showEndMessage() {
-            loading.style.display = 'none';
+        // Reshuffle playlist and continue playing
+        function reshuffleAndContinue() {
+            // Show reshuffle message
+            reshuffleMessage.classList.add('show');
             videoPlayer.style.display = 'none';
             videoIframe.style.display = 'none';
             
-            const endDiv = document.createElement('div');
-            endDiv.className = 'error-message';
-            endDiv.innerHTML = `
-                <h2>✅ Playlist Complete</h2>
-                <p>All ${videos.length} videos have been played.</p>
-                <button onclick="window.close()">Close Player</button>
-            `;
-            document.getElementById('playerContainer').appendChild(endDiv);
+            // Wait 2 seconds with message, then reshuffle
+            setTimeout(() => {
+                // Create new shuffled playlist
+                shuffledPlaylist = shuffleArray([...Array(videos.length).keys()]);
+                currentPlaylistIndex = 0;
+                
+                // Hide message and start playing
+                reshuffleMessage.classList.remove('show');
+                playVideo(shuffledPlaylist[currentPlaylistIndex]);
+            }, 2000);
         }
 
         // Show error message
