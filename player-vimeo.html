@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vimeo Theater Player</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        #playerContainer {
+            position: relative;
+            width: 75vw;
+            height: 75vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            box-shadow: 0 0 80px rgba(0,0,0,0.9);
+        }
+
+        #videoPlayer {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #videoIframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Progress Bar Only - Always Visible at Bottom */
+        .progress-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            z-index: 10;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #667eea;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .video-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 10;
+        }
+
+        #playerContainer:hover .video-info {
+            opacity: 1;
+        }
+
+        .video-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .video-meta {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            text-align: center;
+            z-index: 100;
+            background: rgba(0,0,0,0.8);
+            padding: 40px;
+            border-radius: 12px;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        /* Reshuffling indicator */
+        .reshuffle-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(102, 126, 234, 0.95);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .reshuffle-message.show {
+            opacity: 1;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(220,38,38,0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .error-message h2 {
+            margin-bottom: 15px;
+        }
+
+        .error-message p {
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .error-message button {
+            background: white;
+            color: #dc2626;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div id="playerContainer">
+        <video id="videoPlayer" style="display: none;"></video>
+        <iframe id="videoIframe" style="display: none;" allowfullscreen></iframe>
+        
+        <div class="video-info">
+            <div class="video-title" id="currentTitle">Loading...</div>
+            <div class="video-meta" id="currentMeta">Preparing playback...</div>
+        </div>
+
+        <!-- Progress Bar Only -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <div>Loading videos...</div>
+        </div>
+
+        <!-- Reshuffle indicator -->
+        <div class="reshuffle-message" id="reshuffleMessage">
+            <div class="loading-spinner" style="margin: 0 auto 15px;"></div>
+            <div>Reshuffling playlist...</div>
+        </div>
+    </div>
+
+    <script>
+        let videos = [];
+        let shuffledPlaylist = [];
+        let currentPlaylistIndex = 0;
+        let hasStartedPlaying = false;
+        let hls = null;
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoIframe = document.getElementById('videoIframe');
+        const loading = document.getElementById('loading');
+        const progressBar = document.getElementById('progressBar');
+        const reshuffleMessage = document.getElementById('reshuffleMessage');
+
+        // Initialize player
+        function initPlayer() {
+            // Small delay to ensure localStorage is fully available
+            setTimeout(() => {
+                loadFromLocalStorage();
+                
+                if (videos.length > 0) {
+                    console.log('Loaded videos:', videos);
+                    // Create shuffled playlist
+                    shuffledPlaylist = shuffleArray([...Array(videos.length).keys()]);
+                    currentPlaylistIndex = 0;
+                    playVideo(shuffledPlaylist[currentPlaylistIndex]);
+                } else {
+                    console.error('No videos found in localStorage');
+                    showError();
+                }
+            }, 100);
+        }
+
+        // Load playlist from localStorage
+        function loadFromLocalStorage() {
+            try {
+                const playlistData = localStorage.getItem('videoStreamPlaylist-vimeo');
+                console.log('Raw localStorage data:', playlistData);
+                
+                if (playlistData) {
+                    videos = JSON.parse(playlistData);
+                    console.log('Parsed videos:', videos);
+                }
+            } catch (error) {
+                console.error('Error loading from localStorage:', error);
+            }
+        }
+
+        // Shuffle array (Fisher-Yates algorithm)
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // Play video by index
+        function playVideo(videoIndex) {
+            if (videoIndex < 0 || videoIndex >= videos.length) return;
+            
+            const video = videos[videoIndex];
+            console.log('Playing video:', video);
+            
+            // Only show loading on first video
+            if (currentPlaylistIndex === 0 && !hasStartedPlaying) {
+                loading.style.display = 'flex';
+                hasStartedPlaying = true;
+            }
+            
+            progressBar.style.width = '0%';
+            
+            // Update video info
+            document.getElementById('currentTitle').textContent = video.name || `Video ${videoIndex + 1}`;
+            document.getElementById('currentMeta').textContent = `${currentPlaylistIndex + 1} of ${videos.length}`;
+            
+            // Determine video type - prioritize hlsUrl from Cloudflare
+            if (video.hlsUrl) {
+                playHLSVideo(video.hlsUrl);
+            } else if (video.iframeUrl) {
+                playIframeVideo(video.iframeUrl);
+            } else if (video.url) {
+                // Fallback to url field
+                if (video.url.includes('.m3u8')) {
+                    playHLSVideo(video.url);
+                } else if (video.url.includes('iframe') || video.url.includes('cloudflarestream.com')) {
+                    playIframeVideo(video.url);
+                } else {
+                    playDirectVideo(video.url);
+                }
+            } else {
+                console.error('No valid video URL found:', video);
+                playNext();
+            }
+        }
+
+        // Play HLS video
+        function playHLSVideo(url) {
+            console.log('Playing HLS:', url);
+            videoPlayer.style.display = 'block';
+            videoIframe.style.display = 'none';
+            
+            if (hls) {
+                hls.destroy();
+            }
+            
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true
+                });
+                
+                hls.loadSource(url);
+                hls.attachMedia(videoPlayer);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    loading.style.display = 'none';
+                    videoPlayer.play();
+                });
+                
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        console.error('HLS error:', data);
+                        playNext();
+                    }
+                });
+            } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                videoPlayer.src = url;
+                loading.style.display = 'none';
+                videoPlayer.play();
+            }
+            
+            // Update progress bar
+            videoPlayer.ontimeupdate = () => {
+                if (videoPlayer.duration) {
+                    const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                    progressBar.style.width = progress + '%';
+                }
+            };
+            
+            videoPlayer.onended = () => {
+                playNext();
+            };
+        }
+
+        // Play iframe video
+        function playIframeVideo(url) {
+            console.log('Playing iframe:', url);
+            videoPlayer.style.display = 'none';
+            videoIframe.style.display = 'block';
+            
+            // Add autoplay parameter
+            const separator = url.includes('?') ? '&' : '?';
+            const autoplayUrl = `${url}${separator}autoplay=true`;
+            
+            videoIframe.src = autoplayUrl;
+            loading.style.display = 'none';
+            
+            // Simulate progress bar for iframe (estimate based on duration if available)
+            if (videos[shuffledPlaylist[currentPlaylistIndex]].duration) {
+                const duration = videos[shuffledPlaylist[currentPlaylistIndex]].duration;
+                let elapsed = 0;
+                const progressInterval = setInterval(() => {
+                    elapsed += 0.5;
+                    const progress = (elapsed / duration) * 100;
+                    progressBar.style.width = Math.min(progress, 100) + '%';
+                    
+                    if (elapsed >= duration) {
+                        clearInterval(progressInterval);
+                        playNext();
+                    }
+                }, 500);
+            }
+        }
+
+        // Play direct video
+        function playDirectVideo(url) {
+            console.log('Playing direct:', url);
+            videoPlayer.style.display = 'block';
+            videoIframe.style.display = 'none';
+            
+            videoPlayer.src = url;
+            loading.style.display = 'none';
+            videoPlayer.play();
+            
+            videoPlayer.ontimeupdate = () => {
+                if (videoPlayer.duration) {
+                    const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                    progressBar.style.width = progress + '%';
+                }
+            };
+            
+            videoPlayer.onended = () => {
+                playNext();
+            };
+        }
+
+        // Play next video in shuffled playlist
+        function playNext() {
+            currentPlaylistIndex++;
+            
+            if (currentPlaylistIndex >= shuffledPlaylist.length) {
+                // All videos played - reshuffle and continue!
+                reshuffleAndContinue();
+                return;
+            }
+            
+            playVideo(shuffledPlaylist[currentPlaylistIndex]);
+        }
+
+        // Reshuffle playlist and continue playing
+        function reshuffleAndContinue() {
+            // Show reshuffle message
+            reshuffleMessage.classList.add('show');
+            videoPlayer.style.display = 'none';
+            videoIframe.style.display = 'none';
+            
+            // Wait 2 seconds with message, then reshuffle
+            setTimeout(() => {
+                // Create new shuffled playlist
+                shuffledPlaylist = shuffleArray([...Array(videos.length).keys()]);
+                currentPlaylistIndex = 0;
+                
+                // Hide message and start playing
+                reshuffleMessage.classList.remove('show');
+                playVideo(shuffledPlaylist[currentPlaylistIndex]);
+            }, 2000);
+        }
+
+        // Show error message
+        function showError() {
+            loading.style.display = 'none';
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `
+                <h2>⚠️ No Videos Found</h2>
+                <p>No videos were loaded from the admin panel. Please go back to the admin panel and select videos to play.</p>
+                <button onclick="window.close()">Close Player</button>
+            `;
+            document.getElementById('playerContainer').appendChild(errorDiv);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', initPlayer);
+    </script>
+</body>
+</html>
