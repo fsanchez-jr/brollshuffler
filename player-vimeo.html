@@ -318,7 +318,7 @@
         }
 
         // Play video by index
-        function playVideo(videoIndex) {
+        async function playVideo(videoIndex) {
             if (videoIndex < 0 || videoIndex >= videos.length) return;
             
             const video = videos[videoIndex];
@@ -343,8 +343,14 @@
             document.getElementById('currentTitle').textContent = video.name || `Video ${videoIndex + 1}`;
             document.getElementById('currentMeta').textContent = `${currentPlaylistIndex + 1} of ${videos.length}`;
             
-            // Fetch and display video title from Vimeo API
-            fetchVimeoTitle(video.id);
+            // Fetch title and duration from Vimeo - WAIT for it if duration is missing
+            if (video.id && !video.duration) {
+                console.log('Duration missing, fetching from Vimeo...');
+                await fetchVimeoTitle(video.id);
+            } else if (video.id) {
+                // Fetch title in background (don't wait)
+                fetchVimeoTitle(video.id);
+            }
             
             // Determine video type - prioritize iframeUrl for Vimeo
             if (video.iframeUrl) {
@@ -366,24 +372,29 @@
             }
         }
 
-        // Fetch video title from Vimeo API
+        // Fetch video title and duration from Vimeo oEmbed API (more reliable than v2 API)
         async function fetchVimeoTitle(videoId) {
             try {
-                const response = await fetch(`https://vimeo.com/api/v2/video/${videoId}.json`);
+                // Use oEmbed API - more reliable than v2 API
+                const response = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${videoId}`);
                 const data = await response.json();
-                if (data && data[0]) {
+                
+                if (data) {
                     // Set title
-                    if (data[0].title) {
-                        document.getElementById('videoTitleDisplay').textContent = data[0].title;
-                        // Update the stored name too
+                    if (data.title) {
+                        document.getElementById('videoTitleDisplay').textContent = data.title;
+                        console.log('Fetched title:', data.title);
+                        
+                        // Update stored name
                         if (videos[shuffledPlaylist[currentPlaylistIndex]]) {
-                            videos[shuffledPlaylist[currentPlaylistIndex]].name = data[0].title;
+                            videos[shuffledPlaylist[currentPlaylistIndex]].name = data.title;
                         }
                     }
-                    // Store duration for accurate countdown
-                    if (data[0].duration && videos[shuffledPlaylist[currentPlaylistIndex]]) {
-                        videos[shuffledPlaylist[currentPlaylistIndex]].duration = data[0].duration;
-                        console.log('Fetched duration from Vimeo API:', data[0].duration);
+                    
+                    // Store duration if available
+                    if (data.duration && videos[shuffledPlaylist[currentPlaylistIndex]]) {
+                        videos[shuffledPlaylist[currentPlaylistIndex]].duration = data.duration;
+                        console.log('Fetched duration from oEmbed:', data.duration);
                     }
                 }
             } catch (error) {
@@ -465,46 +476,50 @@
             
             console.log('Using duration:', actualDuration, 'seconds');
             
-            // Wait a moment for iframe to load, then try Player API
+            // ALWAYS start manual countdown as backup
+            // This ensures countdown works even if Player API events fail
+            if (actualDuration && actualDuration > 0) {
+                startManualCountdown(actualDuration);
+            }
+            
+            // Also try Player API for more accurate updates (if it works, it will override manual)
             setTimeout(() => {
                 if (window.Vimeo && window.Vimeo.Player) {
                     try {
                         const player = new Vimeo.Player(videoIframe);
                         console.log('Vimeo Player API initialized');
                         
-                        // Get duration from player
-                        player.getDuration().then(function(duration) {
-                            console.log('Player API duration:', duration);
-                            countdownTimer.textContent = formatCountdown(duration);
-                            
-                            // Use player timeupdate for accurate countdown
-                            player.on('timeupdate', function(data) {
-                                updateCountdown(data.seconds, data.duration);
-                            });
-                            
-                            player.on('ended', function() {
-                                if (countdownInterval) clearInterval(countdownInterval);
-                                playNext();
-                            });
-                        }).catch(function(error) {
-                            console.error('Error getting duration from Player API:', error);
-                            // Fallback to manual countdown
-                            simulateCountdown(actualDuration);
+                        let playerApiWorking = false;
+                        
+                        // Try to use player API for accuracy
+                        player.on('timeupdate', function(data) {
+                            playerApiWorking = true;
+                            updateCountdown(data.seconds, data.duration);
                         });
+                        
+                        player.on('ended', function() {
+                            if (countdownInterval) clearInterval(countdownInterval);
+                            playNext();
+                        });
+                        
+                        // Check after 3 seconds if Player API is working
+                        setTimeout(() => {
+                            if (!playerApiWorking) {
+                                console.warn('Player API timeupdate not firing, manual countdown will continue');
+                            } else {
+                                console.log('Player API working, using for accurate updates');
+                            }
+                        }, 3000);
                         
                     } catch (e) {
                         console.error('Vimeo Player API error:', e);
-                        simulateCountdown(actualDuration);
                     }
-                } else {
-                    console.warn('Vimeo Player API not available, using manual countdown');
-                    simulateCountdown(actualDuration);
                 }
-            }, 1000); // Give iframe 1 second to load before initializing API
+            }, 500);
         }
 
-        // Simulate countdown when we can't track actual progress
-        function simulateCountdown(duration) {
+        // Start manual countdown that always works
+        function startManualCountdown(duration) {
             if (!duration || duration <= 0) {
                 console.error('Invalid duration for countdown:', duration);
                 return;
@@ -598,5 +613,4 @@
     </script>
 </body>
 </html>
-
 
