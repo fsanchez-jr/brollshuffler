@@ -25,8 +25,8 @@
 
         #playerContainer {
             position: relative;
-            width: 75vw;
-            height: 75vh;
+            width: 70vw;
+            height: 70vh;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -46,10 +46,10 @@
             border: none;
         }
 
-        /* Progress Bar - Custom styled to replace Vimeo controls */
+        /* Progress Bar - Below video container */
         .progress-container {
             position: absolute;
-            bottom: 60px;
+            bottom: -40px;
             left: 0;
             right: 0;
             height: 4px;
@@ -64,10 +64,10 @@
             transition: width 0.1s linear;
         }
 
-        /* Video Title Below Player */
+        /* Video Title Below progress bar */
         .video-title-display {
             position: absolute;
-            bottom: 15px;
+            bottom: -70px;
             left: 50%;
             transform: translateX(-50%);
             color: rgba(255, 255, 255, 0.9);
@@ -90,6 +90,7 @@
             opacity: 0;
             transition: opacity 0.3s;
             z-index: 10;
+            display: none; /* Hide this - we only want the bottom title */
         }
 
         #playerContainer:hover .video-info {
@@ -240,8 +241,13 @@
                 
                 if (videos.length > 0) {
                     console.log('Loaded videos:', videos);
+                    console.log('Original order:', videos.map((v, i) => `${i}: ${v.id}`));
+                    
                     // Create shuffled playlist
                     shuffledPlaylist = shuffleArray([...Array(videos.length).keys()]);
+                    console.log('Shuffled order:', shuffledPlaylist);
+                    console.log('First video to play:', shuffledPlaylist[0], videos[shuffledPlaylist[0]]);
+                    
                     currentPlaylistIndex = 0;
                     playVideo(shuffledPlaylist[currentPlaylistIndex]);
                 } else {
@@ -514,3 +520,4 @@
     </script>
 </body>
 </html>
+
