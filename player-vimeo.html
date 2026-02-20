@@ -46,37 +46,58 @@
             border: none;
         }
 
-        /* Progress Bar - Below video container */
-        .progress-container {
+        /* Bottom Control Bar - Clean horizontal layout */
+        .bottom-controls {
             position: absolute;
-            bottom: -40px;
+            bottom: -50px;
             left: 0;
             right: 0;
-            height: 4px;
-            background: rgba(255,255,255,0.3);
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
             z-index: 10;
         }
 
-        .progress-bar {
-            height: 100%;
-            background: #667eea;
-            width: 0%;
-            transition: width 0.1s linear;
-        }
-
-        /* Video Title Below progress bar */
-        .video-title-display {
-            position: absolute;
-            bottom: -70px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.9);
+        /* Countdown Timer - Bottom Left */
+        .countdown-timer {
+            font-family: Helvetica, Arial, sans-serif;
             font-size: 14px;
-            font-weight: 500;
-            text-align: center;
-            z-index: 10;
-            max-width: 80%;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 400;
+            white-space: nowrap;
+        }
+
+        /* Video Title - Next to timer */
+        .video-title-display {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 400;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-left: 20px;
+            flex: 1;
+            text-align: left;
+        }
+
+        /* Next Button - Far Right */
+        .next-button {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.9);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            font-weight: 900;
+            transition: color 0.2s;
+            margin-left: 20px;
+        }
+
+        .next-button:hover {
+            color: #667eea;
         }
 
         .video-info {
@@ -201,13 +222,12 @@
             <div class="video-meta" id="currentMeta">Preparing playback...</div>
         </div>
 
-        <!-- Progress Bar -->
-        <div class="progress-container">
-            <div class="progress-bar" id="progressBar"></div>
+        <!-- Bottom Control Bar -->
+        <div class="bottom-controls">
+            <div class="countdown-timer" id="countdownTimer">0:00</div>
+            <div class="video-title-display" id="videoTitleDisplay"></div>
+            <button class="next-button" id="nextButton" onclick="playNext()">▶</button>
         </div>
-
-        <!-- Video Title Below -->
-        <div class="video-title-display" id="videoTitleDisplay"></div>
 
         <div class="loading" id="loading">
             <div class="loading-spinner"></div>
@@ -227,10 +247,11 @@
         let currentPlaylistIndex = 0;
         let hasStartedPlaying = false;
         let hls = null;
+        let countdownInterval = null;
         const videoPlayer = document.getElementById('videoPlayer');
         const videoIframe = document.getElementById('videoIframe');
         const loading = document.getElementById('loading');
-        const progressBar = document.getElementById('progressBar');
+        const countdownTimer = document.getElementById('countdownTimer');
         const reshuffleMessage = document.getElementById('reshuffleMessage');
 
         // Initialize player
@@ -272,6 +293,20 @@
             }
         }
 
+        // Format time for countdown (mm:ss)
+        function formatCountdown(seconds) {
+            if (!seconds || seconds < 0) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Update countdown timer
+        function updateCountdown(currentTime, duration) {
+            const remaining = duration - currentTime;
+            countdownTimer.textContent = formatCountdown(remaining);
+        }
+
         // Shuffle array (Fisher-Yates algorithm)
         function shuffleArray(array) {
             const shuffled = [...array];
@@ -289,13 +324,20 @@
             const video = videos[videoIndex];
             console.log('Playing video:', video);
             
+            // Clear any existing countdown
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            
             // Only show loading on first video
             if (currentPlaylistIndex === 0 && !hasStartedPlaying) {
                 loading.style.display = 'flex';
                 hasStartedPlaying = true;
             }
             
-            progressBar.style.width = '0%';
+            // Reset countdown
+            countdownTimer.textContent = '0:00';
             
             // Update video info display at top (hover only)
             document.getElementById('currentTitle').textContent = video.name || `Video ${videoIndex + 1}`;
@@ -378,11 +420,10 @@
                 videoPlayer.play();
             }
             
-            // Update progress bar
+            // Update countdown timer
             videoPlayer.ontimeupdate = () => {
                 if (videoPlayer.duration) {
-                    const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
-                    progressBar.style.width = progress + '%';
+                    updateCountdown(videoPlayer.currentTime, videoPlayer.duration);
                 }
             };
             
@@ -404,15 +445,17 @@
             videoIframe.src = autoplayUrl;
             loading.style.display = 'none';
             
-            // Try to use Vimeo Player API for accurate progress if available
-            // Fallback to estimation if API not loaded
+            // Try to use Vimeo Player API for accurate countdown
             if (window.Vimeo && window.Vimeo.Player) {
                 try {
                     const player = new Vimeo.Player(videoIframe);
                     
+                    player.getDuration().then(function(duration) {
+                        countdownTimer.textContent = formatCountdown(duration);
+                    });
+                    
                     player.on('timeupdate', function(data) {
-                        const progress = (data.seconds / data.duration) * 100;
-                        progressBar.style.width = progress + '%';
+                        updateCountdown(data.seconds, data.duration);
                     });
                     
                     player.on('ended', function() {
@@ -420,31 +463,30 @@
                     });
                 } catch (e) {
                     console.log('Vimeo Player API not available, using estimation');
-                    simulateProgress(estimatedDuration);
+                    simulateCountdown(estimatedDuration);
                 }
             } else {
-                // Simulate progress bar based on estimated duration
-                simulateProgress(estimatedDuration);
+                // Simulate countdown based on estimated duration
+                simulateCountdown(estimatedDuration);
             }
         }
 
-        // Simulate progress when we can't track actual progress
-        function simulateProgress(duration) {
+        // Simulate countdown when we can't track actual progress
+        function simulateCountdown(duration) {
             if (duration) {
+                countdownTimer.textContent = formatCountdown(duration);
                 let elapsed = 0;
-                const interval = setInterval(() => {
-                    elapsed += 0.5;
-                    const progress = (elapsed / duration) * 100;
-                    progressBar.style.width = Math.min(progress, 100) + '%';
+                
+                countdownInterval = setInterval(() => {
+                    elapsed += 1;
+                    const remaining = duration - elapsed;
+                    countdownTimer.textContent = formatCountdown(remaining);
                     
                     if (elapsed >= duration) {
-                        clearInterval(interval);
+                        clearInterval(countdownInterval);
                         playNext();
                     }
-                }, 500);
-                
-                // Store interval ID so we can clear it if needed
-                window.currentProgressInterval = interval;
+                }, 1000);
             }
         }
 
@@ -460,8 +502,7 @@
             
             videoPlayer.ontimeupdate = () => {
                 if (videoPlayer.duration) {
-                    const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
-                    progressBar.style.width = progress + '%';
+                    updateCountdown(videoPlayer.currentTime, videoPlayer.duration);
                 }
             };
             
@@ -520,4 +561,5 @@
     </script>
 </body>
 </html>
+
 
