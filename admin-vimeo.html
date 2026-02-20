@@ -890,10 +890,9 @@ https://vimeo.com/987654321"></textarea>
                     return null;
                 }
                 
-                // Create clean Vimeo embed URL with minimal controls
-                // Parameters: title=0 (hide title), byline=0 (hide author), portrait=0 (hide avatar)
-                // controls=1 (show only playback bar), autoplay=1, muted=0
-                const embedUrl = `https://player.vimeo.com/video/${vimeoId}?title=0&byline=0&portrait=0&badge=0&controls=1&autopause=0&player_id=0&app_id=58479`;
+                // Create ultra-clean Vimeo embed URL with NO Vimeo controls
+                // We'll use our own progress bar instead
+                const embedUrl = `https://player.vimeo.com/video/${vimeoId}?title=0&byline=0&portrait=0&badge=0&controls=0&autopause=0&background=1`;
                 
                 return {
                     id: vimeoId,
