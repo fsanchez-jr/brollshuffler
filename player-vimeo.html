@@ -371,15 +371,23 @@
             try {
                 const response = await fetch(`https://vimeo.com/api/v2/video/${videoId}.json`);
                 const data = await response.json();
-                if (data && data[0] && data[0].title) {
-                    document.getElementById('videoTitleDisplay').textContent = data[0].title;
-                    // Update the stored name too
-                    if (videos[shuffledPlaylist[currentPlaylistIndex]]) {
-                        videos[shuffledPlaylist[currentPlaylistIndex]].name = data[0].title;
+                if (data && data[0]) {
+                    // Set title
+                    if (data[0].title) {
+                        document.getElementById('videoTitleDisplay').textContent = data[0].title;
+                        // Update the stored name too
+                        if (videos[shuffledPlaylist[currentPlaylistIndex]]) {
+                            videos[shuffledPlaylist[currentPlaylistIndex]].name = data[0].title;
+                        }
+                    }
+                    // Store duration for accurate countdown
+                    if (data[0].duration && videos[shuffledPlaylist[currentPlaylistIndex]]) {
+                        videos[shuffledPlaylist[currentPlaylistIndex]].duration = data[0].duration;
+                        console.log('Fetched duration from Vimeo API:', data[0].duration);
                     }
                 }
             } catch (error) {
-                console.error('Error fetching Vimeo title:', error);
+                console.error('Error fetching Vimeo metadata:', error);
                 document.getElementById('videoTitleDisplay').textContent = '';
             }
         }
@@ -433,10 +441,16 @@
         }
 
         // Play iframe video
-        function playIframeVideo(url, estimatedDuration) {
+        async function playIframeVideo(url, estimatedDuration) {
             console.log('Playing iframe:', url);
             videoPlayer.style.display = 'none';
             videoIframe.style.display = 'block';
+            
+            // Clear any existing countdown
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
             
             // Add autoplay and loop=0 parameters
             const separator = url.includes('?') ? '&' : '?';
@@ -445,49 +459,72 @@
             videoIframe.src = autoplayUrl;
             loading.style.display = 'none';
             
-            // Try to use Vimeo Player API for accurate countdown
-            if (window.Vimeo && window.Vimeo.Player) {
-                try {
-                    const player = new Vimeo.Player(videoIframe);
-                    
-                    player.getDuration().then(function(duration) {
-                        countdownTimer.textContent = formatCountdown(duration);
-                    });
-                    
-                    player.on('timeupdate', function(data) {
-                        updateCountdown(data.seconds, data.duration);
-                    });
-                    
-                    player.on('ended', function() {
-                        playNext();
-                    });
-                } catch (e) {
-                    console.log('Vimeo Player API not available, using estimation');
-                    simulateCountdown(estimatedDuration);
+            // Get actual duration from stored video data (fetched from Vimeo API)
+            const currentVideo = videos[shuffledPlaylist[currentPlaylistIndex]];
+            const actualDuration = currentVideo?.duration || estimatedDuration;
+            
+            console.log('Using duration:', actualDuration, 'seconds');
+            
+            // Wait a moment for iframe to load, then try Player API
+            setTimeout(() => {
+                if (window.Vimeo && window.Vimeo.Player) {
+                    try {
+                        const player = new Vimeo.Player(videoIframe);
+                        console.log('Vimeo Player API initialized');
+                        
+                        // Get duration from player
+                        player.getDuration().then(function(duration) {
+                            console.log('Player API duration:', duration);
+                            countdownTimer.textContent = formatCountdown(duration);
+                            
+                            // Use player timeupdate for accurate countdown
+                            player.on('timeupdate', function(data) {
+                                updateCountdown(data.seconds, data.duration);
+                            });
+                            
+                            player.on('ended', function() {
+                                if (countdownInterval) clearInterval(countdownInterval);
+                                playNext();
+                            });
+                        }).catch(function(error) {
+                            console.error('Error getting duration from Player API:', error);
+                            // Fallback to manual countdown
+                            simulateCountdown(actualDuration);
+                        });
+                        
+                    } catch (e) {
+                        console.error('Vimeo Player API error:', e);
+                        simulateCountdown(actualDuration);
+                    }
+                } else {
+                    console.warn('Vimeo Player API not available, using manual countdown');
+                    simulateCountdown(actualDuration);
                 }
-            } else {
-                // Simulate countdown based on estimated duration
-                simulateCountdown(estimatedDuration);
-            }
+            }, 1000); // Give iframe 1 second to load before initializing API
         }
 
         // Simulate countdown when we can't track actual progress
         function simulateCountdown(duration) {
-            if (duration) {
-                countdownTimer.textContent = formatCountdown(duration);
-                let elapsed = 0;
-                
-                countdownInterval = setInterval(() => {
-                    elapsed += 1;
-                    const remaining = duration - elapsed;
-                    countdownTimer.textContent = formatCountdown(remaining);
-                    
-                    if (elapsed >= duration) {
-                        clearInterval(countdownInterval);
-                        playNext();
-                    }
-                }, 1000);
+            if (!duration || duration <= 0) {
+                console.error('Invalid duration for countdown:', duration);
+                return;
             }
+            
+            console.log('Starting manual countdown for', duration, 'seconds');
+            countdownTimer.textContent = formatCountdown(duration);
+            let elapsed = 0;
+            
+            countdownInterval = setInterval(() => {
+                elapsed += 1;
+                const remaining = duration - elapsed;
+                countdownTimer.textContent = formatCountdown(remaining);
+                
+                if (elapsed >= duration) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                    playNext();
+                }
+            }, 1000);
         }
 
         // Play direct video
